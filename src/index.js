@@ -1,68 +1,116 @@
-﻿import debounce from 'lodash.debounce';
+import {fetchBreeds, fetchCatByBreed} from './cat-api.js';
+import SlimSelect from 'slim-select'
 import Notiflix from 'notiflix';
-import './css/styles.css';
-import { fetchCountries } from './js/fetchCountries';
 
-const DEBOUNCE_DELAY = 300;
+// new SlimSelect({
+//     select: '#selectElement',
+//   })
 
-const input = document.querySelector("#search-box");
-const list = document.querySelector(".country-list");
-const div = document.querySelector(".country-info");
+const elementSet = {
+    selectElement: document.querySelector('.breed-select'),
+    infoElement: document.querySelector('.cat-info'),
+    successTextElement: document.querySelector('.loader'),
+    errorTextElement: document.querySelector('.error'),
+}
 
-let searchCountryName = '';
+// start settings
+elementSet.selectElement.style.width = "150px";
+elementSet.selectElement.style.display = "none";
+elementSet.errorTextElement.style.display = "none";
+elementSet.infoElement.style.display = "flex";
+elementSet.infoElement.style.flexDirection = "row";
+elementSet.infoElement.style.gap = "20px";
 
-input.addEventListener("input", debounce(onInputChange, DEBOUNCE_DELAY));
+elementSet.successTextElement.style.position = "absolute";
+elementSet.successTextElement.style.left = "50vw";
+elementSet.successTextElement.style.top = "300px";
 
-function onInputChange() {
-    searchCountryName = input.value.trim();
-    if (searchCountryName === '') {
-        clearAll();
-        return;
-    } else fetchCountries(searchCountryName).then(countryNames => {
-        if (countryNames.length < 2) {
-            createCountrieCard(countryNames);
-            Notiflix.Notify.success('Here your result');
-        } else if (countryNames.length < 10 && countryNames.length > 1) {
-            createCountrieList(countryNames);
-            Notiflix.Notify.success('Here your results');
-        } else {
-            clearAll();
-            Notiflix.Notify.info('Too many matches found. Please enter a more specific name.');
-        };
-    })
-        .catch(() => {
-        clearAll();
-        Notiflix.Notify.failure('Oops, there is no country with that name.');
+function newSettings() {
+    const textBlock = document.querySelector('[name="text-block"]');
+    const titleDes = document.querySelector('[name="des"]');
+    const titleTemp = document.querySelector('[name="temp"]');
+    const textTemp = document.querySelector('[name="text-temp"]');
+    
+    textBlock.style.display = "flex";
+    textBlock.style.flexDirection = "column";
+
+    titleDes.style.fontSize = "24px";
+    titleDes.style.fontWeight = "700";
+    titleDes.style.fontWeight = "bold";
+    titleDes.style.marginBottom = "10px";
+   
+    titleTemp.style.fontWeight = "bold";
+
+    textTemp.style.marginTop = "20px";
+}
+
+fetchBreeds().then(responce => {
+
+    // let nameBreeds = [];
+
+    elementSet.selectElement.style.display = "block";
+    elementSet.successTextElement.style.display = "none";
+    elementSet.errorTextElement.style.displey = "none";
+   
+    responce.data.map(result => {
+        let newOpt = document.createElement('option');
+        newOpt.setAttribute('value', result.id);
+        newOpt.textContent = result.name;
+        // nameBreeds.push({text: result.name, value: result.id });
+        elementSet.selectElement.appendChild(newOpt);
     });
+
+    new SlimSelect({
+        select: '#selectElement',
+      
+        // Array of Option objects
+        data: nameBreeds,
+
+      })
+}).catch(() => {
+
+    elementSet.successTextElement.style.display = "none";
+    elementSet.errorTextElement.style.visibility = "visible";
+ } 
+);
+
+function getBrred (evt) {
+
+    elementSet.successTextElement.style.display = "block";
+    elementSet.infoElement.style.display = "none";
+
+    fetchCatByBreed(evt.target.value).then(responce => {
+       
+        elementSet.successTextElement.style.display = "none";
+        elementSet.infoElement.style.display = "flex";
+    
+        elementSet.infoElement.innerHTML = ""; 
+        
+        // my error
+        if(responce.hasOwnProperty("data") && responce.data.length === 0)  
+            throw new Error("Breed array is empty!");
+
+        const { url, breeds } = responce.data[0]
+        const { description, temperament, name} = breeds[0]
+        
+
+        elementSet.infoElement.innerHTML = `
+        <img src=${url} width="300" hight="250">
+        </img> 
+        <div name="text-block">
+            <p1 name="des">${name}</p1>
+            <a>${description}</a>
+            <a name="text-temp"><span name="temp">Temperament: </span>${temperament}</a>
+        </div>`;
+        newSettings();
+        
+    }).catch(error => {
+
+        elementSet.successTextElement.style.display = "none";
+        elementSet.errorTextElement.style.visibility = "visible";
+        Notiflix.Notify.warning(error.message);
+     } 
+    );
 };
 
-function createCountrieCard(country) {
-    clearAll();
-    const c = country[0];
-    const readyCard = `<div class="country-card">
-        <div class="country-card--header">
-            <img src="${c.flags.svg}" alt="Country flag" width="55", height="35">
-            <h2 class="country-card--name"> ${c.name.official}</h2>
-        </div>
-            <p class="country-card--field">Capital: <span class="country-value">${c.capital}</span></p>
-            <p class="country-card--field">Population: <span class="country-value">${c.population}</span></p>
-            <p class="country-card--field">Languages: <span class="country-value">${Object.values(c.languages).join(',')}</span></p>
-    </div>`
-    div.innerHTML = readyCard;
-};
-
-function createCountrieList(country) {
-    clearAll();
-    const readyList = country.map((c) => 
-        `<li class="country-list--item">
-            <img src="${c.flags.svg}" alt="Country flag" width="40", height="30">
-            <span class="country-list--name">${c.name.official}</span>
-        </li>`)
-        .join("");
-    list.insertAdjacentHTML('beforeend', readyList);
-};
-
-function clearAll() {
-  list.innerHTML = '';
-  div.innerHTML = '';
-};
+elementSet.selectElement.addEventListener('change', getBrred);
