@@ -1,3 +1,19 @@
+body {
+  display: block;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  /* Установка цвета фона на указанный оттенок */
+  background-color: #dffacd;
+}
+.breed-select {
+  /* Увеличение ширины элемента для помещения полного названия породы */
+ min-width: 255px;
+  /* Уменьшение размера текста внутри элемента */
+  font-size: 20px;
+}
+
 .loader {
   /* Стили для центрирования элемента */
   position: absolute;
@@ -10,6 +26,7 @@
   width: 400px;
   height: 300px;
   color: #340fb9;
+
 }
     .loader:before,
     .loader:after {
